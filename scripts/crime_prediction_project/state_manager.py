@@ -11,7 +11,7 @@ class StateManager:
     Class to manage state for the pipeline and persist important artifacts.
     """
 
-    def __init__(self, state_dir="state"):
+    def __init__(self, state_dir="trained_models"):
         """
         Initializes the state manager with default values for the pipeline state
         and sets up a directory for saving/loading artifacts.

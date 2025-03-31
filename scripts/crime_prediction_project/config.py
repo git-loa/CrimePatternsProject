@@ -16,7 +16,6 @@ CONFIG = {
     # Cross-validation settings
     "kfolds": 5,
     # Dataset and feature engineering
-    "default_columns": ["Police_Budget", "Education_Budget"],  # Default features
     "feature_columns": [
         "Population",
         "crime_rate",
@@ -94,4 +93,38 @@ CONFIG = {
         "home_ownership_rate",
         "rent_burden",
     ],
+    # Grid parameters for hyperparameter tuning
+    "param_grids": {
+        "Ridge": {
+            "model__alpha": [0.01, 0.1, 1, 10, 100],
+            "model__random_state": [42],  # Ensure reproducibility
+        },
+        "Lasso": {
+            "model__alpha": [0.01, 0.1, 1, 10, 100],
+            "model__max_iter": [1000, 5000, 10000],
+            "model__tol": [0.0001, 0.001, 0.01],
+            "model__fit_intercept": [True, False],
+            "model__selection": ["cyclic", "random"],
+        },
+        "LinearRegression": {
+            "model__fit_intercept": [True, False],
+            "model__n_jobs": [-1],  # Use all CPU cores
+            "model__positive": [True, False],
+            "pca__n_components": [3, 5, 10, 11],
+        },
+        "RandomForest": {
+            "model__n_estimators": [50, 100, 200],
+            "model__max_depth": [10, 20, None],
+            "model__min_samples_split": [2, 5, 10],
+            "model__min_samples_leaf": [1, 2, 4],
+            "model__random_state": [42],  # Ensure reproducibility
+        },
+        "XGBoost": {
+            "model__learning_rate": [0.01, 0.1, 0.2],
+            "model__max_depth": [3, 5, 7],
+            "model__n_estimators": [50, 100, 200],
+            "model__colsample_bytree": [0.3, 0.5, 0.7, 1.0],
+            "model__random_state": [42],  # Ensure reproducibility
+        },
+    },
 }

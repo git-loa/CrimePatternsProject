@@ -54,11 +54,14 @@ def load_data(option: str = "1985-2023") -> pd.DataFrame:
 
 
 if __name__ == "__main__":
+    PERFORM_CV = False
+    FINE_TUNE = False
+    PCA_COMPONENTS = 11
 
     data = load_data(option="2010-2023")
     # Print dataset dimensions and preview
     print(f"\nDataset created with {data.shape[0]} rows and {data.shape[1]} columns.\n")
-    print(f"{data.head()}\n")
+    # print(f"{data.head()}\n")
 
     # Initialize pipeline
     pipeline = CrimeRatePipeline(data)
@@ -75,37 +78,40 @@ if __name__ == "__main__":
     saved_evals = {}
     saved_cv_scores = {}
     for model_type in model_types:
+        print("\n---------------------------------------------------")
         print(f"Running pipeline for {model_type}...")
         (evaluations, region) = pipeline.run_pipeline(
             category="all",
             model_type=model_type,
-            use_scaler=True,
-            use_pca=False,
-            perform_cv=True,
+            pca_components=PCA_COMPONENTS,
+            perform_cv=PERFORM_CV,
             k_folds=5,
-            alpha=1.0,
+            fine_tune=FINE_TUNE,
         )
         evaluated_metrics[model_type] = evaluations
 
         # Metrics are a
-        load_evals = pipeline.load_model_artifacts(
-            model_type=model_type, artifact="evaluations"
-        )
-        saved_evals[model_type] = load_evals
+        # load_evals = pipeline.load_model_artifacts(
+        #    model_type=model_type, artifact="evaluations"
+        # )
+        # saved_evals[model_type] = load_evals
 
-        load_cv_scores = pipeline.load_model_artifacts(
-            model_type=model_type, artifact="cv_scores"
-        )
-        saved_cv_scores[model_type] = load_cv_scores
+        if PERFORM_CV:
+            load_cv_scores = pipeline.load_model_artifacts(
+                model_type=model_type, artifact="cv_scores"
+            )
+            saved_cv_scores[model_type] = load_cv_scores
 
+    TITLE = ""
     if region == "all":
-        title = "All counties"
+        TITLE = "All counties"
     elif region in ["Urban", "Suburban", "Rural"]:
-        title = region + " counties"
+        TITLE = region + " counties"
     else:
-        title = region + " county"
+        TITLE = region + " county"
 
     print("\n")
-    display_model_metrics(evaluated_metrics, title)
-    print("\n")
-    display_cross_validation_metrics(saved_cv_scores, title)
+    display_model_metrics(evaluated_metrics, TITLE)
+    print("\n\n")
+    if PERFORM_CV:
+        display_cross_validation_metrics(saved_cv_scores, TITLE)

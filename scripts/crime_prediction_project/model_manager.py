@@ -85,15 +85,15 @@ class ModelManager:
         # Dynamically create the model instance
         model = ""
         if model_type == "Ridge":
-            model = Ridge(**filtered_params)
+            model = Ridge(**(filtered_params or {}))
         if model_type == "RandomForest":
-            model = RandomForestRegressor(**filtered_params)
+            model = RandomForestRegressor(**(filtered_params or {}))
         if model_type == "XGBoost":
-            model = XGBRegressor(**filtered_params)
+            model = XGBRegressor(**(filtered_params or {}))
         if model_type == "LinearRegression":
-            model = LinearRegression(**filtered_params)
+            model = LinearRegression(**(filtered_params or {}))
         if model_type == "Lasso":
-            model = Lasso(**filtered_params)
+            model = Lasso(**(filtered_params or {}))
 
         # Add the model to the pipeline
         steps.append(("model", model))
@@ -115,7 +115,7 @@ class ModelManager:
         valid_params = {
             "Ridge": {"alpha", "random_state"},
             "Lasso": {"alpha", "max_iter", "tol", "fit_intercept", "selection"},
-            "LinearRegression": {"fit_intercept", "normalize", "n_jobs", "positive"},
+            "LinearRegression": {"fit_intercept", "n_jobs", "positive"},
             "RandomForest": {
                 "n_estimators",
                 "max_depth",
@@ -241,6 +241,7 @@ class ModelManager:
     def fine_tune_model(
         self,
         model_type,
+        estimator_model,
         model_params_grid,
         x_train,
         y_train,
@@ -278,12 +279,12 @@ class ModelManager:
             raise ValueError(f"Unsupported model type: {model_type}")
 
         # Initialize the base model
-        model = base_models[model_type]
+        # model = base_models[model_type]
 
         # Choose search method: GridSearchCV or RandomizedSearchCV
         if use_random_search:
             search = RandomizedSearchCV(
-                estimator=model,
+                estimator=estimator_model,
                 param_distributions=model_params_grid,
                 n_iter=n_iter,
                 scoring=scoring,  # Dynamic scoring
@@ -293,7 +294,7 @@ class ModelManager:
             )
         else:
             search = GridSearchCV(
-                estimator=model,
+                estimator=estimator_model,
                 param_grid=model_params_grid,
                 scoring=scoring,  # Dynamic scoring
                 cv=5,

@@ -52,14 +52,14 @@ class FeatureEngineering:
     @staticmethod
     def compute_clearance_rate(data):
         """
-        Computes the clearance rate as ViolentClr_sum / Population.
+        Computes the clearance rate as ViolentClr_sum / Violent_sum.
         """
-        if "ViolentClr_sum" in data.columns and "Population" in data.columns:
-            data["clearance_rate"] = data["ViolentClr_sum"] / data["Population"]
+        if "ViolentClr_sum" in data.columns and "Violent_sum" in data.columns:
+            data["clearance_rate"] = data["ViolentClr_sum"] / data["Violent_sum"]
             # print("Computed .... clearance_rate")
         else:
             raise ValueError(
-                "Columns 'ViolentClr_sum' and 'Population' are required for clearance rate."
+                "Columns 'ViolentClr_sum' and 'Violent_sum' are required for clearance rate."
             )
         return data
 

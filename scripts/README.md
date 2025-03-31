@@ -4,6 +4,8 @@
 
 Folder containing python scripts for the project.
 
+- `scripts/main.py:` Entry point of the program
+
 ### crime_rates_project/
 
 This is the project folder.
