@@ -54,8 +54,8 @@ def load_data(option: str = "1985-2023") -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    PERFORM_CV = False
-    FINE_TUNE = False
+    PERFORM_CV = True
+    FINE_TUNE = True
     PCA_COMPONENTS = 11
 
     data = load_data(option="2010-2023")

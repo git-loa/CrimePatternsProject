@@ -1,14 +1,15 @@
 """
-This module contains the class module manager.
+This module contains the class model manager.
 """
 
+import os
+from scipy.stats import shapiro
 import numpy as np
 from sklearn.metrics import (
     mean_squared_error,
     r2_score,
     root_mean_squared_error,
 )
-
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.pipeline import Pipeline
@@ -17,6 +18,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
+from crime_prediction_project.utils import residual_scatter_plot, residual_hist_plot
 
 
 class ModelManager:
@@ -79,7 +81,7 @@ class ModelManager:
         filtered_params = self.filter_model_params(model_type, model_params)
 
         self.state_manager.save_model_artifacts(
-            model_type=model_type, obj=filtered_params, artifact_type="filtered_params"
+            model_type=model_type, obj=filtered_params, artifact_type="default_params"
         )
 
         # Dynamically create the model instance
@@ -232,11 +234,12 @@ class ModelManager:
 
         # y_pred = model.predict(X_test)
         # mse = mean_squared_error(y_test, y_pred)
-        evaluations = {
+        metrics = {
             "train": [train_mse, train_rmse, train_r2score],
             "test": [test_mse, test_rmse, test_r2score],
         }
-        return evaluations
+        predictions = {"train": train_pred, "test": test_pred}
+        return (metrics, predictions)
 
     def fine_tune_model(
         self,
@@ -306,3 +309,89 @@ class ModelManager:
 
         # Return the best model and parameters
         return search.best_estimator_, search.best_params_
+
+    def perform_residual_analysis(
+        self, y_train, y_test, train_pred, test_pred, model_type
+    ):
+        """
+        Performs residual analysis and saves plots using StateManager.
+
+        Parameters:
+            model: Trained model or pipeline.
+            x_test (pd.DataFrame): Test features.
+            y_test (pd.Series): Test target values.
+            model_type (str): The model type (used for naming saved plots).
+
+        Returns:
+            dict: Residual analysis results including saved plot paths.
+        """
+        # Get the directory from StateManager
+        model_folder = os.path.join(
+            self.state_manager.get_directory("residual_analysis"), model_type
+        )
+        if not os.path.exists(model_folder):
+            os.makedirs(model_folder)
+
+        # Generate predictions and calculate residuals
+        # y_pred = model.predict(x_test)
+        # residuals = y_test - y_pred
+
+        residuals_train = y_train - train_pred
+        residuals_test = y_test - test_pred
+
+        # Define file paths for plots
+        residual_hist_file = os.path.join(
+            model_folder, f"{model_type}_residual_hist.png"
+        )
+        residual_scatter_file = os.path.join(
+            model_folder, f"{model_type}_residual_scatter.png"
+        )
+
+        # Residual plots
+        residual_scatter_plot(
+            model_type=model_type,
+            test_pred=test_pred,
+            residuals_test=residuals_test,
+            train_pred=train_pred,
+            residuals_train=residuals_train,
+            filename=residual_scatter_file,
+        )
+
+        residual_hist_plot(
+            model_type=model_type,
+            residuals_test=residuals_test,
+            residuals_train=residuals_train,
+            filename=residual_hist_file,
+        )
+        # Perform normality test (Shapiro-Wilk)
+        stat_test, p_test = shapiro(residuals_test)
+        normality_result_test = (
+            "Residuals are normally distributed."
+            if p_test > 0.05
+            else "Residuals are not normally distributed."
+        )
+
+        # Perform normality test (Shapiro-Wilk)
+        stat_train, p_train = shapiro(residuals_train)
+        normality_result_train = (
+            "Residuals are normally distributed."
+            if p_train > 0.05
+            else "Residuals are not normally distributed."
+        )
+
+        # Return residual analysis details
+        return {
+            "residuals": {"train": residuals_train, "test": residuals_test},
+            "shapiro_test": {
+                "statistic": {"train": stat_train, "test": stat_test},
+                "p_value": {"train": p_train, "test": p_test},
+                "result": {
+                    "train": normality_result_train,
+                    "test": normality_result_test,
+                },
+            },
+            "saved_plots": {
+                "histogram": residual_hist_file,
+                "scatter_plot": residual_scatter_file,
+            },
+        }

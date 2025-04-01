@@ -6,6 +6,7 @@ This is a utility module.
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from scipy.stats import skew
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
@@ -216,3 +217,95 @@ def display_cross_validation_metrics(metrics_dict, region):
 
     # Display the table
     print(table)
+
+
+def residual_scatter_plot(
+    model_type,
+    test_pred,
+    residuals_test,
+    train_pred,
+    residuals_train,
+    filename,
+):
+    """
+    Generates a scatter plot showing residuals vs predicted values for both
+    the test and train sets. Saves the figure as an image file.
+
+    Parameters:
+        model_type (str): Name of the model.
+        test_pred (array-like): Predicted values for the test set.
+        residuals_test (array-like): Residuals for the test set.
+        train_pred (array-like): Predicted values for the train set.
+        residuals_train (array-like): Residuals for the train set.
+        filename (str): Path to save the plot as an image file.
+
+    Saves:
+        A figure with two subplots displaying residuals for test and train sets.
+    """
+
+    # Create a figure and two subplots (1 row, 2 columns)
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+
+    # First subplot
+
+    axes[0].scatter(test_pred, residuals_test, color="blue", label="Residuals(test)")
+    axes[0].axhline(0, color="red", linestyle="--")
+    # axes[0].plot([min(y_test), max(y_test)], [min(mlr_test_residuals), max(mlr_test_residuals)])
+    axes[0].set_title(f"Residuals vs Predicted for test set ({model_type})")
+    axes[0].set_xlabel("Predicted Crime Rate")
+    axes[0].set_ylabel("Residuals")
+    axes[0].legend()
+
+    # Second subplot
+    axes[1].scatter(train_pred, residuals_train, color="blue", label="Residuals(train)")
+    axes[1].axhline(0, color="red", linestyle="--")
+    # axes[0].plot([min(y_test), max(y_test)], [min(mlr_test_residuals), max(mlr_test_residuals)])
+    axes[1].set_title(f"Residuals vs Predicted for train set ({model_type})")
+    axes[1].set_xlabel("Predicted Crime Rate")
+    axes[1].set_ylabel("Residuals")
+    axes[1].legend()
+
+    # Adjust layout
+    plt.tight_layout()
+    fig.savefig(filename, dpi=300)
+    plt.close(fig)
+
+
+def residual_hist_plot(
+    model_type,
+    residuals_test,
+    residuals_train,
+    filename,
+):
+    """
+    Generates histograms of residuals for both the test and train sets.
+    Saves the figure as an image file.
+
+    Parameters:
+        model_type (str): Name of the model.
+        residuals_test (array-like): Residuals for the test set.
+        residuals_train (array-like): Residuals for the train set.
+        filename (str): Path to save the plot as an image file.
+
+    Saves:
+        A figure with two subplots displaying histograms of residuals for test and train sets.
+    """
+
+    # Create a figure and two subplots (1 row, 2 columns)
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+
+    axes[0].hist(residuals_test, bins=30, edgecolor="black")
+    axes[0].set_title(f"Residual Histogram for test set ({model_type})")
+    axes[0].set_xlabel("Residuals")
+    axes[0].set_ylabel("Frequency")
+
+    # Second subplot
+    axes[1].hist(residuals_train, bins=30, edgecolor="black")
+    axes[1].set_title(f"Residual Histogram for train set ({model_type})")
+    axes[1].set_xlabel("Residuals")
+    axes[1].set_ylabel("Frequency")
+
+    # Adjust layout
+    plt.tight_layout()
+    fig.savefig(filename, dpi=300)
+    plt.close(fig)

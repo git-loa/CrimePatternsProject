@@ -82,7 +82,7 @@ class CrimeRatePipeline:
             pca_components=pca_components if use_pca else None,
         )
 
-        # NEW: Fine-tune the model before training (if enabled)
+        # Fine-tune the model before training (if enabled)
         if fine_tune:
             print(f"Fine-tuning hyperparameters for {model_type}...")
             best_model, best_params = self.model_manager.fine_tune_model(
@@ -106,7 +106,7 @@ class CrimeRatePipeline:
 
         # Perform K-Fold Cross-Validation (if requested)
         if perform_cv:
-            print(f"\n Performing {k_folds}-Fold Cross-Validation for {model_type}...")
+            print(f"\nPerforming {k_folds}-Fold Cross-Validation for {model_type}...")
             cv_scores = self.model_manager.cross_validate_model(
                 x_train,
                 y_train,
@@ -123,14 +123,14 @@ class CrimeRatePipeline:
 
         # Train and evaluate the fine-tuned pipeline
         print(f"\nTraining and evaluating the {model_type} model...")
-        evaluations = self.model_manager.train_and_evaluate(
+        metrics, predictions = self.model_manager.train_and_evaluate(
             x_train, x_test, y_train, y_test, pipeline
         )
         # print(f"Performance Metrics for {model_type}: {evaluations}")
 
         # Save artifacts: Evaluation metrics
         self.state_manager.save_model_artifacts(
-            model_type=model_type, obj=evaluations, artifact_type="evaluations"
+            model_type=model_type, obj=metrics, artifact_type="metrics"
         )
 
         # Save artifacts: Fine-tuned pipeline
@@ -138,7 +138,19 @@ class CrimeRatePipeline:
             model_type=model_type, obj=pipeline, artifact_type="pipeline"
         )
 
-        return evaluations, category
+        # Perform residual analysis and save residual plots
+        print(f"\nPerforming residual analysis for {model_type}...")
+        residual_analysis = self.model_manager.perform_residual_analysis(
+            y_train=y_train,
+            y_test=y_test,
+            train_pred=predictions["train"],
+            test_pred=predictions["test"],
+            model_type=model_type,
+        )
+        print(f"Residual Analysis Results for {model_type}: {residual_analysis}")
+        print(f"Saved Plots: {residual_analysis['saved_plots']}")
+
+        return metrics, category
 
     def load_model_artifacts(self, model_type, artifact):
         """
