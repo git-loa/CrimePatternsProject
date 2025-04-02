@@ -50,10 +50,11 @@ class FeatureEngineering:
 
     # Feature Function: Compute Clearance Rate
     @staticmethod
-    def compute_clearance_rate(data):
+    def compute_clearance_rate(df):
         """
         Computes the clearance rate as ViolentClr_sum / Violent_sum.
         """
+        data = df.copy()
         if "ViolentClr_sum" in data.columns and "Violent_sum" in data.columns:
             data["clearance_rate"] = data["ViolentClr_sum"] / data["Violent_sum"]
             # print("Computed .... clearance_rate")
@@ -65,10 +66,11 @@ class FeatureEngineering:
 
     # Feature Function: Compute Population Density
     @staticmethod
-    def compute_population_density(data):
+    def compute_population_density(df):
         """
         Computes the population density as Population / Area_sq_mi.
         """
+        data = df.copy()
         if "Population" in data.columns and "Area_sq_mi" in data.columns:
             data["population_density"] = data["Population"] / data["Area_sq_mi"]
         else:
@@ -80,7 +82,7 @@ class FeatureEngineering:
     # Dynamically Add Adjusted Expenditure Columns
 
     @staticmethod
-    def add_adjusted_expenditures(data):
+    def add_adjusted_expenditures(df):
         """
         Adjusts expenditure columns by CPI_Population.
         Parameters:
@@ -88,6 +90,7 @@ class FeatureEngineering:
         Returns:
             pd.DataFrame: The dataset with adjusted expenditure columns.
         """
+        data = df.copy()
         if "CPI_Population" not in data.columns or (data["CPI_Population"] <= 0).any():
             raise ValueError(
                 "CPI_Population column is missing or invalid (e.g., contains zero or NaN values)."
@@ -119,6 +122,25 @@ class FeatureEngineering:
                 data["judiciary_budget"] / data["CPI_Population"]
             )
             data["adj_prison_budget"] = data["prison_budget"] / data["CPI_Population"]
+
+            data["social_vs_security"] = (
+                data["adj_education_budget"]
+                + data["adj_welfare_budget"]
+                + data["adj_health_budget"]
+            ) / (
+                data["adj_police_budget"]
+                + data["adj_judiciary_budget"]
+                + data["adj_prison_budget"]
+            )
+            data["security_vs_social"] = (
+                data["adj_police_budget"]
+                + data["adj_judiciary_budget"]
+                + data["adj_prison_budget"]
+            ) / (
+                data["adj_education_budget"]
+                + data["adj_welfare_budget"]
+                + data["adj_health_budget"]
+            )
         else:
             raise ValueError("Required columns for adjusted_expenditures are missing.")
 
@@ -157,76 +179,32 @@ class FeatureEngineering:
             )
         return data
 
-    # Feature Function: Home Ownership Rate
-    @staticmethod
-    def compute_home_ownership_rate(data):
-        """
-        Computes home ownership rate as Owner_Occupied divided by Occupied_Housing_Units.
-        """
-        if (
-            "Owner_Occupied" in data.columns
-            and "Occupied_Housing_Units" in data.columns
-        ):
-            data["home_ownership_rate"] = (
-                data["Owner_Occupied"] / data["Occupied_Housing_Units"]
-            )
-        else:
-            raise ValueError(
-                "Columns 'Owner_Occupied' and 'Occupied_Housing_Units' are required for home ownership rate."
-            )
-        return data
-
-    # Feature Function: Mobile Home Ratio
-    @staticmethod
-    def compute_mobile_home_ratio(data):
-        """
-        Computes mobile home ratio as Mobile_Home divided by Total_Housing_Units.
-        """
-        if "Mobile_Home" in data.columns and "Total_Housing_Units" in data.columns:
-            data["mobile_home_ratio"] = (
-                data["Mobile_Home"] / data["Total_Housing_Units"]
-            )
-        else:
-            raise ValueError(
-                "Columns 'Mobile_Home' and 'Total_Housing_Units' are required for mobile home ratio."
-            )
-        return data
-
-    # Feature Function: Vacancy Rate
-    @staticmethod
-    def compute_vacancy_rate(data):
-        """
-        Computes vacancy rate as Vacant_Housing_Units divided by Total_Housing_Units.
-        """
-        if (
-            "Vacant_Housing_Units" in data.columns
-            and "Total_Housing_Units" in data.columns
-        ):
-            data["Vacancy_Rate"] = (
-                data["Vacant_Housing_Units"] / data["Total_Housing_Units"]
-            )
-        else:
-            raise ValueError(
-                "Columns 'Vacant_Housing_Units' and 'Total_Housing_Units' are required for vacant rate."
-            )
-        return data
-
     # Feature Function: Total Persons and Household Metrics
     @staticmethod
-    def compute_persons_and_household_metrics(data):
+    def compute_persons_and_household_metrics(df):
         """
         Computes total persons, total persons for owners/renters, and persons per household.
         """
+        data = df.copy()
         if all(
             col in data.columns
             for col in [
+                "Vacant_Housing_Units",
+                "Total_Housing_Units",
                 "Owner_Occupied",
                 "Avg_Hsehld_Size_Owner_Occupied",
                 "Renter_Occupied",
                 "Avg_HseHld_Size_Renter_Occupied",
                 "Occupied_Housing_Units",
+                "Mobile_Home",
             ]
         ):
+            data["home_ownership_rate"] = (
+                data["Owner_Occupied"] / data["Occupied_Housing_Units"]
+            )
+            data["vacancy_rate"] = (
+                data["Vacant_Housing_Units"] / data["Total_Housing_Units"]
+            )
             data["Total_Persons_Owner"] = (
                 data["Owner_Occupied"] * data["Avg_Hsehld_Size_Owner_Occupied"]
             )
@@ -238,6 +216,10 @@ class FeatureEngineering:
             )
             data["Number_of_Persons_per_HseHld"] = (
                 data["Total_Persons"] / data["Occupied_Housing_Units"]
+            )
+            data["renter_ratio"] = data["Total_Persons_Renter"] / data["Total_Persons"]
+            data["mobile_home_ratio"] = (
+                data["Mobile_Home"] / data["Total_Housing_Units"]
             )
         else:
             raise ValueError(

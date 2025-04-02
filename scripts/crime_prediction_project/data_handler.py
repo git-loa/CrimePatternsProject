@@ -40,16 +40,6 @@ class DataHandler:
             FeatureEngineering.compute_house_affordability,
         )
         self.feature_engineering.register_feature(
-            "compute_home_ownership_rate",
-            FeatureEngineering.compute_home_ownership_rate,
-        )
-        self.feature_engineering.register_feature(
-            "compute_mobile_home_ratio", FeatureEngineering.compute_mobile_home_ratio
-        )
-        self.feature_engineering.register_feature(
-            "compute_vacancy_rate", FeatureEngineering.compute_vacancy_rate
-        )
-        self.feature_engineering.register_feature(
             "compute_persons_and_household_metrics",
             FeatureEngineering.compute_persons_and_household_metrics,
         )

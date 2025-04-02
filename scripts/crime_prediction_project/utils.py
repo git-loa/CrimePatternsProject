@@ -8,10 +8,48 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import skew
+from sklearn.linear_model import LinearRegression
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from prettytable import PrettyTable, TableStyle
+
+
+def fill_missing_with_linear_regression(group):
+    """
+    For a single county (group), fit a simple linear regression model
+    Year vs. each numeric column. Use that model to fill missing values.
+    """
+    # Sort by Year for clarity
+    group = group.sort_index(level="Year")
+
+    # Iterate over each column
+    for col in group.columns:
+        # Only process numeric columns
+        if pd.api.types.is_numeric_dtype(group[col]):
+            # Extract the known data points (drop missing)
+            valid_data = group[col].dropna()
+
+            # If there aren't at least two valid points, we can't fit a regression
+            if len(valid_data) < 2:
+                continue
+
+            # Prepare X (Year) and y (column values)
+            X = valid_data.index.get_level_values("Year").values.reshape(-1, 1)
+            y = valid_data.values
+
+            # Fit the linear regression model
+            model = LinearRegression().fit(X, y)
+
+            # Predict for all years in this county
+            X_all = group.index.get_level_values("Year").values.reshape(-1, 1)
+            y_pred = model.predict(X_all)
+
+            # Fill only missing values with the predictions
+            missing_mask = group[col].isna()
+            group.loc[missing_mask, col] = y_pred[missing_mask]
+
+    return group
 
 
 def detect_imputation_strategy(dataframe, threshold=0.5):

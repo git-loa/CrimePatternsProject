@@ -6,10 +6,9 @@ import os
 import pandas as pd
 from crime_prediction_project.pipeline import CrimeRatePipeline
 from crime_prediction_project.utils import (
-    detect_imputation_strategy,
-    impute_data,
     display_model_metrics,
     display_cross_validation_metrics,
+    fill_missing_with_linear_regression,
 )
 
 
@@ -42,9 +41,11 @@ def load_data(option: str = "1985-2023") -> pd.DataFrame:
     df = pd.DataFrame()
     if option == "1985-2023":
         filepath = os.path.join("dataset", "crime_data_1985-2023.xlsx")
-        df = pd.read_excel(filepath)
-        strategies = detect_imputation_strategy(df)
-        df = impute_data(df, strategies)
+        dataframe = pd.read_excel(filepath)
+        dataframe = dataframe.set_index(["County", "Year"])
+        df = fill_missing_with_linear_regression(dataframe)
+        # strategies = detect_imputation_strategy(da)
+        # df = impute_data(df, strategies)
     elif option == "2010-2023":
         filepath = os.path.join("dataset", "crime_data_2010-2023.xlsx")
         df = pd.read_excel(filepath)
@@ -58,7 +59,7 @@ if __name__ == "__main__":
     FINE_TUNE = True
     PCA_COMPONENTS = 11
 
-    data = load_data(option="2010-2023")
+    data = load_data(option="1985-2023")
     # Print dataset dimensions and preview
     print(f"\nDataset created with {data.shape[0]} rows and {data.shape[1]} columns.\n")
     # print(f"{data.head()}\n")
@@ -81,7 +82,7 @@ if __name__ == "__main__":
         print("\n---------------------------------------------------")
         print(f"Running pipeline for {model_type}...")
         (evaluations, region) = pipeline.run_pipeline(
-            category="all",
+            category="Urban",
             model_type=model_type,
             pca_components=PCA_COMPONENTS,
             perform_cv=PERFORM_CV,

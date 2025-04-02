@@ -27,7 +27,7 @@ CONFIG = {
         "rent_burden",
         "home_ownership_rate",
         "mobile_home_ratio",
-        "Vacancy_Rate",
+        "vacancy_rate",
         "Total_Persons_Owner",
         "Total_Persons_Renter",
         "Total_Persons",
@@ -58,6 +58,9 @@ CONFIG = {
         "Category_Urban",
         "uninsured_rate",
         "high_school_rate",
+        "renter_ratio",
+        "social_vs_security",
+        "security_vs_social",
     ],
     "target_column": "crime_rate",
     "features_to_apply": [
@@ -66,9 +69,6 @@ CONFIG = {
         "add_adjusted_expenditures",
         "compute_adjusted_income",
         "compute_house_affordability",
-        "compute_home_ownership_rate",
-        "compute_mobile_home_ratio",
-        "compute_vacancy_rate",
         "compute_persons_and_household_metrics",
     ],
     "non_categorical_features": [
@@ -92,6 +92,9 @@ CONFIG = {
         "adj_prison_budget",
         "home_ownership_rate",
         "rent_burden",
+        "renter_ratio",
+        "social_vs_security",
+        "security_vs_social",
     ],
     # Grid parameters for hyperparameter tuning
     "param_grids": {
