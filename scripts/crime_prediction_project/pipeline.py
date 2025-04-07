@@ -30,6 +30,7 @@ class CrimeRatePipeline:
         perform_cv=False,
         k_folds=5,
         fine_tune=False,
+        fine_tune_method="hybrid",
         **default_model_params,
     ):
         """
@@ -75,6 +76,7 @@ class CrimeRatePipeline:
         # Initialize pipeline with optional PCA and scaler
         default_model_params = CONFIG["default_model_params"]
         pipeline = self.model_manager.get_pipeline(
+            category,
             model_type,
             default_model_params,
             use_scaler,
@@ -85,41 +87,40 @@ class CrimeRatePipeline:
         # Fine-tune the model before training (if enabled)
         if fine_tune:
             print(f"Fine-tuning hyperparameters for {model_type}...")
-            best_model, best_params = self.model_manager.fine_tune_model(
+            best_model, best_params, cv_scores = self.model_manager.fine_tune_model(
                 model_type=model_type,
                 estimator_model=pipeline,
                 model_params_grid=self.config["param_grids"][model_type],
                 x_train=x_train,
                 y_train=y_train,
                 scoring="r2",
-                use_random_search=False,  # Default to GridSearchCV
+                search_method=fine_tune_method,  # Default to grid
+                perform_cross_validation=perform_cv,
+                random_state=self.config["random_seed"],
+                kfolds=k_folds,
             )
 
+            # Perform K-Fold Cross-Validation (if requested)
+            if cv_scores is not None:
+                # Save artifacts: Cross-validation scores
+                self.state_manager.save_model_artifacts(
+                    model_type=model_type,
+                    obj=cv_scores,
+                    artifact_type="cv_scores",
+                    category=category,
+                )
+
             self.state_manager.save_model_artifacts(
-                model_type=model_type, obj=best_params, artifact_type="best_params"
+                model_type=model_type,
+                obj=best_params,
+                artifact_type="best_params",
+                category=category,
             )
             print(f"Best hyperparameters for {model_type}: {best_params}")
 
             # Replace pipeline model with the fine-tuned version
             pipeline = best_model
-            print(pipeline)
-
-        # Perform K-Fold Cross-Validation (if requested)
-        if perform_cv:
-            print(f"\nPerforming {k_folds}-Fold Cross-Validation for {model_type}...")
-            cv_scores = self.model_manager.cross_validate_model(
-                x_train,
-                y_train,
-                pipeline,
-                random_state=self.config["random_seed"],
-                kfolds=k_folds,
-            )
-            # print(f"K-Fold Cross-Validation Scores: {cv_scores}")
-
-            # Save artifacts: Cross-validation scores
-            self.state_manager.save_model_artifacts(
-                model_type=model_type, obj=cv_scores, artifact_type="cv_scores"
-            )
+            # print(pipeline)
 
         # Train and evaluate the fine-tuned pipeline
         print(f"\nTraining and evaluating the {model_type} model...")
@@ -130,12 +131,18 @@ class CrimeRatePipeline:
 
         # Save artifacts: Evaluation metrics
         self.state_manager.save_model_artifacts(
-            model_type=model_type, obj=metrics, artifact_type="metrics"
+            model_type=model_type,
+            obj=metrics,
+            artifact_type="metrics",
+            category=category,
         )
 
         # Save artifacts: Fine-tuned pipeline
         self.state_manager.save_model_artifacts(
-            model_type=model_type, obj=pipeline, artifact_type="pipeline"
+            model_type=model_type,
+            obj=pipeline,
+            artifact_type="pipeline",
+            category=category,
         )
 
         # Perform residual analysis and save residual plots
@@ -146,20 +153,25 @@ class CrimeRatePipeline:
             train_pred=predictions["train"],
             test_pred=predictions["test"],
             model_type=model_type,
+            category=category,
         )
-        print(f"Residual Analysis Results for {model_type}: {residual_analysis}")
-        print(f"Saved Plots: {residual_analysis['saved_plots']}")
+        print(
+            f"Residual Analysis Results for {model_type}: {residual_analysis['shapiro_test']}\n"
+        )
+        print(f"Saved Residual Plots: {residual_analysis['saved_plots']}\n")
 
         return metrics, category
 
-    def load_model_artifacts(self, model_type, artifact):
+    def load_model_artifacts(self, model_type, artifact, category):
         """
         Loads saved evaluation metrics.
 
         Returns:
-            dict: Loaded evaluation metrics.
+            dict: Loaded evaluation metrics,.
         """
 
         return self.state_manager.load_model_artifacts(
-            model_type=model_type, artifact_type=artifact
+            model_type=model_type,
+            artifact_type=artifact,
+            category=category,
         )
