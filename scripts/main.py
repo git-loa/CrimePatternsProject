@@ -57,7 +57,8 @@ def load_data(option: str = "1985-2023") -> pd.DataFrame:
 if __name__ == "__main__":
     PERFORM_CV = True
     FINE_TUNE = True
-    PCA_COMPONENTS = 11
+    PCA_COMPONENTS = 10
+    CATEGORY = "all"
 
     data = load_data(option="1985-2023")
     # Print dataset dimensions and preview
@@ -67,13 +68,14 @@ if __name__ == "__main__":
     # Initialize pipeline
     pipeline = CrimeRatePipeline(data)
 
+    # Models to run
     model_types = [
         "LinearRegression",
-        "Ridge",
-        "Lasso",
-        "RandomForest",
-        "XGBoost",
-    ]  # Models to run
+        # "Ridge",
+        # "Lasso",
+        # "RandomForest",
+        # "XGBoost",
+    ]
 
     evaluated_metrics = {}  # To store metrics for each model
     saved_evals = {}
@@ -82,12 +84,13 @@ if __name__ == "__main__":
         print("\n---------------------------------------------------")
         print(f"Running pipeline for {model_type}...")
         (evaluations, region) = pipeline.run_pipeline(
-            category="Urban",
+            category=CATEGORY,  # all, Urban, Suburban, Rural
             model_type=model_type,
             pca_components=PCA_COMPONENTS,
             perform_cv=PERFORM_CV,
             k_folds=5,
             fine_tune=FINE_TUNE,
+            fine_tune_method="grid",
         )
         evaluated_metrics[model_type] = evaluations
 
@@ -99,7 +102,9 @@ if __name__ == "__main__":
 
         if PERFORM_CV:
             load_cv_scores = pipeline.load_model_artifacts(
-                model_type=model_type, artifact="cv_scores"
+                model_type=model_type,
+                artifact="cv_scores",
+                category=CATEGORY,
             )
             saved_cv_scores[model_type] = load_cv_scores
 
@@ -111,8 +116,7 @@ if __name__ == "__main__":
     else:
         TITLE = region + " county"
 
-    print("\n")
-    display_model_metrics(evaluated_metrics, TITLE)
-    print("\n\n")
     if PERFORM_CV:
         display_cross_validation_metrics(saved_cv_scores, TITLE)
+    print("\n")
+    display_model_metrics(evaluated_metrics, TITLE)

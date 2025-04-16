@@ -173,7 +173,7 @@ def display_model_metrics(models_stats, region):
     """
     # Create the PrettyTable instance
     table = PrettyTable()
-    table.field_names = ["Model", "Type", "MSE", "RMSE", "r2 Score"]
+    table.field_names = ["Model", "Dataset", "MSE", "RMSE", "r2 Score"]
 
     # Populate the table with rows
     for key, stat in models_stats.items():
@@ -192,64 +192,67 @@ def display_model_metrics(models_stats, region):
         )
 
     # Set table title and styling
-    table.title = f"Model Performance Metrics for {region}"
+    table.title = f"Trained Model Performance Metrics for {region}"
     table.set_style(TableStyle.DOUBLE_BORDER)
 
     # Display the table
     print(table)
 
 
-def display_cross_validation_metrics(metrics_dict, region):
+def display_cross_validation_metrics(data, region):
     """
-    Generates and displays a PrettyTable for comparing multiple models' metrics.
+    Formats model performance data into a PrettyTable.
 
-    Args:
-        metrics_dict (dict): A dictionary containing performance metrics for multiple models.
-                             Each key is the model name, and its value is another dictionary
-                             with metrics (e.g., MSE, RMSE, r2Score) containing 'Mean' and 'Std' values.
+    Parameters:
+    - data (dict): Nested dictionary containing model names, datasets ('train'/'test'),
+      and performance metrics ('MSE', 'RMSE', 'r² Score').
 
-    Example:
-        metrics_dict = {
-            "LinearRegression": {
-                "MSE": {"Mean MSE": 1.363147e-06, "Std MSE": 3.169104e-07},
-                "RMSE": {"Mean RMSE": 0.001158, "Std MSE": 0.000145},
-                "r2Score": {"Mean r2Score": 0.576404, "Std r2Score": 0.070375},
-            },
-            "Ridge": {
-                "MSE": {"Mean MSE": 1.359505e-06, "Std MSE": 3.105469e-07},
-                "RMSE": {"Mean RMSE": 0.001157, "Std MSE": 0.000143},
-                "r2Score": {"Mean r2Score": 0.577083, "Std r2Score": 0.070440},
-            },
-        }
-        display_model_comparison(metrics_dict)
+    Returns:
+    - PrettyTable: A structured table displaying the model's performance.
+
+    Example Usage:
+    table = create_performance_table(data)
+    print(table)
     """
-    # Create the PrettyTable instance
+
+    # Initialize table with column headers
     table = PrettyTable()
     table.field_names = [
         "Model",
-        "Mean MSE",
+        "Dataset",
+        "Avg MSE",
         "Std MSE",
-        "Mean RMSE",
+        "Avg RMSE",
         "Std RMSE",
-        "Mean R²",
-        "Std R²",
+        "Avg r² Score",
+        "Std r² Score",
     ]
 
-    # Populate the table with data for each model
-    for model_name, metrics in metrics_dict.items():
-        table.add_row(
-            [
-                model_name,
-                f"{metrics['MSE']['Mean MSE']:.6e}",
-                f"{metrics['MSE']['Std MSE']:.6e}",
-                f"{metrics['RMSE']['Mean RMSE']:.6e}",
-                f"{metrics['RMSE']['Std MSE']:.6e}",
-                f"{metrics['r2Score']['Mean r2Score']:.6f}",
-                f"{metrics['r2Score']['Std r2Score']:.6f}",
-            ]
-        )
+    for model, metrics in data.items():
 
-    # Set table title and styling
+        train_row = [
+            model,
+            "Train",
+            f"{metrics['train']['MSE']['Avg MSE']:.2e}",
+            f"{metrics['train']['MSE']['Std MSE']:.2e}",
+            f"{metrics['train']['RMSE']['Avg RMSE']:.5f}",
+            f"{metrics['train']['RMSE']['Std MSE']:.5f}",
+            f"{metrics['train']['r2Score']['Avg r2Score']:.5f}",
+            f"{metrics['train']['r2Score']['Std r2Score']:.5f}",
+        ]
+
+        test_row = [
+            "",
+            "Test",
+            f"{metrics['test']['MSE']['Avg MSE']:.2e}",
+            f"{metrics['test']['MSE']['Std MSE']:.2e}",
+            f"{metrics['test']['RMSE']['Avg RMSE']:.5f}",
+            f"{metrics['test']['RMSE']['Std MSE']:.5f}",
+            f"{metrics['test']['r2Score']['Avg r2Score']:.5f}",
+            f"{metrics['test']['r2Score']['Std r2Score']:.5f}",
+        ]
+        table.add_rows([train_row, test_row], divider=True)
+
     table.title = f"Cross Validation: Performance Metrics for {region}"
     table.set_style(TableStyle.DOUBLE_BORDER)
 
