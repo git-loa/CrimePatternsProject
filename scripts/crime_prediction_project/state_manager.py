@@ -111,7 +111,13 @@ class StateManager:
         print(f"Object loaded from {filepath}")
         return joblib.load(filepath)
 
-    def save_model_artifacts(self, model_type, obj, artifact_type):
+    def save_model_artifacts(
+        self,
+        model_type,
+        obj,
+        artifact_type,
+        category,
+    ):
         """
         Saves model-specific artifacts (trained_models, metrics, or cross-vals scores).
 
@@ -119,6 +125,7 @@ class StateManager:
             model_type (str): Type of model (e.g., "Ridge").
             obj: Object to save (e.g., trained model, metrics, CV scores).
             artifact_type (str): Type of artifact ("trained_model", "metrics", "cv_scores").
+            category (str): Data category (e.g., 'Urban', 'Rural', 'all').
         """
         directory_key = "models"
         if artifact_type == "metrics":
@@ -128,20 +135,26 @@ class StateManager:
         if artifact_type == "best_params":
             directory_key = "best_params"
 
-        filename = f"{model_type}_{artifact_type}.pkl"
+        filename = f"{model_type}_{artifact_type}_{category}.pkl"
         self.save_object(obj, filename, directory_key)
         self.update_state(f"{model_type}_{artifact_type}", filename)
 
-    def load_model_artifacts(self, model_type, artifact_type):
+    def load_model_artifacts(
+        self,
+        model_type,
+        artifact_type,
+        category,
+    ):
         """
         Loads model-specific artifacts.
 
         Parameters:
             model_type (str): Type of model (e.g., "Ridge").
             artifact_type (str): Type of artifact ("trained_model", "metrics", "cv_scores").
+            category (str): Data category (e.g., 'Urban', 'Rural', 'all').
 
         Returns:
             Loaded object.
         """
-        filename = f"{model_type}_{artifact_type}.pkl"
+        filename = f"{model_type}_{artifact_type}_{category}.pkl"
         return self.load_object(filename, artifact_type)

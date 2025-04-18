@@ -31,6 +31,7 @@ class ModelManager:
 
     def get_pipeline(
         self,
+        category,
         model_type,
         model_params,
         use_scaler=True,
@@ -81,7 +82,10 @@ class ModelManager:
         filtered_params = self.filter_model_params(model_type, model_params)
 
         self.state_manager.save_model_artifacts(
-            model_type=model_type, obj=filtered_params, artifact_type="default_params"
+            model_type=model_type,
+            obj=filtered_params,
+            artifact_type="default_params",
+            category=category,
         )
 
         # Dynamically create the model instance
@@ -148,57 +152,228 @@ class ModelManager:
         Performs cross-validation on the pipeline and returns average scores.
 
         Parameters:
-            X (pd.DataFrame): Feature matrix.
-            y (pd.Series): Target variable.
+            features (pd.DataFrame): Feature matrix.
+            target (pd.Series): Target variable.
             pipeline (Pipeline): The pipeline to cross-validate.
-            cv (int): Number of cross-validation folds.
+            kfolds (int): Number of cross-validation folds.
 
         Returns:
             dict: Cross-validation scores (mean and standard deviation).
         """
         # Perform cross-validation using negative mean squared error
-        evals = {"mse": [], "rmse": [], "r2score": []}
+        evals_train = {"mse": [], "rmse": [], "r2score": []}
+        evals_test = {"mse": [], "rmse": [], "r2score": []}
 
         kfold = KFold(n_splits=kfolds, random_state=random_state, shuffle=True)
         for train_index, test_index in kfold.split(features):
-            x_tt, y_tt = features.iloc[train_index], target.iloc[train_index]
-            x_ho, y_ho = features.iloc[test_index], target.iloc[test_index]
+            features_train, features_test = (
+                features.iloc[train_index],
+                features.iloc[test_index],
+            )
+            target_train, target_test = (
+                target.iloc[train_index],
+                target.iloc[test_index],
+            )
 
-            # Fit the pipeline
-            pipeline.fit(x_tt, y_tt)
-            predictions = pipeline.predict(x_ho)
+            # Fit the pipeline (model)
+            pipeline.fit(features_train, target_train)
 
-            # Compute metrics
-            mse = mean_squared_error(y_ho, predictions)
-            evals["mse"].append(mse)
+            # Prediction for train set.
+            predictions_train = pipeline.predict(features_train)
 
-            rmse = np.sqrt(mean_squared_error(y_ho, predictions))
-            evals["rmse"].append(rmse)
+            # Compute metrics for train set and append
+            evals_train["mse"].append(
+                mean_squared_error(target_train, predictions_train)
+            )
+            evals_train["rmse"].append(
+                root_mean_squared_error(target_train, predictions_train)
+            )
+            evals_train["r2score"].append(r2_score(target_train, predictions_train))
 
-            r2 = r2_score(y_ho, predictions)
-            evals["r2score"].append(r2)
+            # Prediction for test set.
+            predictions_test = pipeline.predict(features_test)
+
+            # Compute metrics for test set and append
+            evals_test["mse"].append(mean_squared_error(target_test, predictions_test))
+            evals_test["rmse"].append(
+                root_mean_squared_error(target_test, predictions_test)
+            )
+            evals_test["r2score"].append(r2_score(target_test, predictions_test))
+
+        # Compute average and standard deviations of metrics
+        avg_std_metrics_train = {
+            "MSE": {
+                "Avg MSE": np.mean(evals_train["mse"]),
+                "Std MSE": np.std(evals_train["mse"]),
+            },
+            "RMSE": {
+                "Avg RMSE": np.mean(evals_train["rmse"]),
+                "Std MSE": np.std(evals_train["rmse"]),
+            },
+            "r2Score": {
+                "Avg r2Score": np.mean(evals_train["r2score"]),
+                "Std r2Score": np.std(evals_train["r2score"]),
+            },
+        }
+
+        avg_std_metrics_test = {
+            "MSE": {
+                "Avg MSE": np.mean(evals_test["mse"]),
+                "Std MSE": np.std(evals_test["mse"]),
+            },
+            "RMSE": {
+                "Avg RMSE": np.mean(evals_test["rmse"]),
+                "Std MSE": np.std(evals_test["rmse"]),
+            },
+            "r2Score": {
+                "Avg r2Score": np.mean(evals_test["r2score"]),
+                "Std r2Score": np.std(evals_test["r2score"]),
+            },
+        }
 
         # Log the results
         cross_val_metrics = {
-            "MSE": {
-                "Mean MSE": np.mean(evals["mse"]),
-                "Std MSE": np.std(evals["mse"]),
-            },
-            "RMSE": {
-                "Mean RMSE": np.mean(evals["rmse"]),
-                "Std MSE": np.std(evals["rmse"]),
-            },
-            "r2Score": {
-                "Mean r2Score": np.mean(evals["r2score"]),
-                "Std r2Score": np.std(evals["r2score"]),
-            },
+            "train": avg_std_metrics_train,
+            "test": avg_std_metrics_test,
         }
+
         self.state_manager.update_state(
             "cv_scores",
             cross_val_metrics,
         )
 
         return cross_val_metrics
+
+    def fine_tune_model(
+        self,
+        model_type,
+        estimator_model,
+        model_params_grid,
+        x_train,
+        y_train,
+        scoring="r2",
+        search_method="grid",  # Options: "grid", "random", "hybrid"
+        n_iter=10,
+        kfolds=5,
+        perform_cross_validation=False,
+        random_state=42,
+        verbose=0,
+    ):
+        """
+        Fine-tunes a model using Grid Search and Random Search (Hybrid approach).
+
+        Parameters:
+            - model_type (str): Model type (e.g., 'Ridge', 'RandomForest').
+            - estimator_model (object): Model instance to optimize.
+            - model_params_grid (dict): Hyperparameter ranges.
+            - x_train (pd.DataFrame): Training features.
+            - y_train (pd.Series): Training labels.
+            - scoring (str): Scoring metric.
+            - search_method (str): "grid", "random", or "hybrid" (Grid + Random combination).
+            - n_iter (int): Iterations for RandomizedSearchCV.
+            - kfolds (int): Number of cross-validation folds.
+            - perform_cross_validation (bool): Whether to perform cross-validation
+            - random_state (int): Random seed.
+            - verbose (int)
+
+        Returns:
+            - Best tuned model.
+            - Best hyperparameters.
+            - Cross-validation scores (train/test averages).
+        """
+
+        best_params = {}
+
+        base_models = {
+            "Ridge": Ridge(),
+            "Lasso": Lasso(),
+            "LinearRegression": LinearRegression(),
+            "RandomForest": RandomForestRegressor(),
+            "XGBoost": XGBRegressor(),
+        }
+
+        # Ensure the model type is supported
+        if model_type not in base_models:
+            raise ValueError(f"Unsupported model type: {model_type}")
+
+        # Grid Search
+        if search_method == "grid":
+            search = GridSearchCV(
+                estimator=estimator_model,
+                param_grid=model_params_grid,
+                scoring=scoring,
+                cv=kfolds,
+                verbose=verbose,
+            )
+            search.fit(x_train, y_train)
+            best_model = search.best_estimator_
+            best_params = search.best_params_
+
+        # Randomized Search
+        elif search_method == "random":
+            search = RandomizedSearchCV(
+                estimator=estimator_model,
+                param_distributions=model_params_grid,
+                n_iter=n_iter,
+                scoring=scoring,
+                cv=kfolds,
+                random_state=random_state,
+                verbose=verbose,
+            )
+            search.fit(x_train, y_train)
+            best_model = search.best_estimator_
+            best_params = search.best_params_
+
+        # Hybrid (Random + Grid)
+        elif search_method == "hybrid":
+            # First: Randomized Search (Wide search space)
+            random_search = RandomizedSearchCV(
+                estimator=estimator_model,
+                param_distributions=model_params_grid,
+                n_iter=n_iter,
+                scoring=scoring,
+                cv=kfolds,
+                random_state=random_state,
+                verbose=verbose,
+            )
+            random_search.fit(x_train, y_train)
+            best_random_params = random_search.best_params_
+
+            # Narrow down search space for Grid Search based on Random Search results
+            refined_grid = {
+                key: [best_random_params[key]] for key in best_random_params
+            }
+
+            # Second: Grid Search (Precise tuning)
+            grid_search = GridSearchCV(
+                estimator=estimator_model,
+                param_grid=refined_grid,
+                scoring=scoring,
+                cv=kfolds,
+                verbose=verbose,
+            )
+            grid_search.fit(x_train, y_train)
+            best_model = grid_search.best_estimator_
+            best_params = grid_search.best_params_
+
+        else:
+            raise ValueError(f"Unsupported search method: {search_method}")
+
+        # Perform Final Cross-Validation when enabled.
+        cross_val_scores = None
+        if perform_cross_validation:
+            print(
+                f"Now performing {kfolds}-Fold Cross-Validation for {model_type}...\n"
+            )
+            cross_val_scores = self.cross_validate_model(
+                features=x_train,
+                target=y_train,
+                pipeline=best_model,
+                random_state=random_state,
+                kfolds=kfolds,
+            )
+
+        return best_model, best_params, cross_val_scores
 
     def train_and_evaluate(self, x_train, x_test, y_train, y_test, pipeline):
         """
@@ -241,77 +416,14 @@ class ModelManager:
         predictions = {"train": train_pred, "test": test_pred}
         return (metrics, predictions)
 
-    def fine_tune_model(
-        self,
-        model_type,
-        estimator_model,
-        model_params_grid,
-        x_train,
-        y_train,
-        scoring="r2",  # Default scoring method is R²
-        use_random_search=False,
-        n_iter=10,
-    ):
-        """
-        Fine-tunes a model's hyperparameters using GridSearchCV or RandomizedSearchCV.
-
-        Parameters:
-            model_type (str): The type of model to fine-tune (e.g., 'Ridge', 'RandomForest', 'XGBoost').
-            model_params_grid (dict): A dictionary of hyperparameters and their possible values.
-            X_train (pd.DataFrame): Training features.
-            y_train (pd.Series): Training labels.
-            scoring (str): Scoring method for evaluation (default is 'r2').
-            use_random_search (bool): Whether to use RandomizedSearchCV instead of GridSearchCV.
-            n_iter (int): Number of iterations for RandomizedSearchCV (ignored for GridSearchCV).
-
-        Returns:
-            best_model: The best model found after fine-tuning.
-            best_params: The best combination of hyperparameters.
-        """
-        # Define base models
-        base_models = {
-            "Ridge": Ridge(),
-            "Lasso": Lasso(),
-            "LinearRegression": LinearRegression(),
-            "RandomForest": RandomForestRegressor(),
-            "XGBoost": XGBRegressor(),
-        }
-
-        # Ensure the model type is supported
-        if model_type not in base_models:
-            raise ValueError(f"Unsupported model type: {model_type}")
-
-        # Initialize the base model
-        # model = base_models[model_type]
-
-        # Choose search method: GridSearchCV or RandomizedSearchCV
-        if use_random_search:
-            search = RandomizedSearchCV(
-                estimator=estimator_model,
-                param_distributions=model_params_grid,
-                n_iter=n_iter,
-                scoring=scoring,  # Dynamic scoring
-                cv=5,
-                random_state=42,
-                verbose=1,
-            )
-        else:
-            search = GridSearchCV(
-                estimator=estimator_model,
-                param_grid=model_params_grid,
-                scoring=scoring,  # Dynamic scoring
-                cv=5,
-                verbose=1,
-            )
-
-        # Perform the search
-        search.fit(x_train, y_train)
-
-        # Return the best model and parameters
-        return search.best_estimator_, search.best_params_
-
     def perform_residual_analysis(
-        self, y_train, y_test, train_pred, test_pred, model_type
+        self,
+        y_train,
+        y_test,
+        train_pred,
+        test_pred,
+        model_type,
+        category,
     ):
         """
         Performs residual analysis and saves plots using StateManager.
@@ -341,10 +453,10 @@ class ModelManager:
 
         # Define file paths for plots
         residual_hist_file = os.path.join(
-            model_folder, f"{model_type}_residual_hist.png"
+            model_folder, f"{model_type}_residual_hist_{category}.png"
         )
         residual_scatter_file = os.path.join(
-            model_folder, f"{model_type}_residual_scatter.png"
+            model_folder, f"{model_type}_residual_scatter_{category}.png"
         )
 
         # Residual plots
