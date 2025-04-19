@@ -173,3 +173,6 @@ cython_debug/
 # Custom
 testings.ipynb
 node_modules/
+
+Main notebooks/tl_2022_us_county.zip
+Main notebooks/tl_2022_us_county/
