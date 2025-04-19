@@ -36,7 +36,7 @@ We use three kinds of cross-validation to test our models:
 1) Crime statistics (1985 to 2023): "Crimes and Clearances (including Arson)" https://openjustice.doj.ca.gov/data
 2) Population (1970 to 2023): https://dof.ca.gov/forecasting/demographics/estimates/
 3) Median Age (2010 to 2023): https://data.census.gov/table/ACSST5Y2023.S0101?q=age&g=040XX00US06$0500000
-4) Religious demographics ():
+4) Religious demographics (2010 and 2020): https://www.thearda.com/us-religion/census/congregational-membership?y=2020&y2=0&t=0&c=06001
 5) Median Household Income (2009 to 2023): https://www.census.gov/data-tools/demo/saipe/#/?s_state=06&s_county=&s_district=&s_geography=county&s_measures=mhi&map_yearSelector=2023&x_tableYears=2023,2022,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021
 6) Poverty rate (2009 to 2023): https://www.census.gov/data-tools/demo/saipe/#/?s_state=06&s_county=&s_district=&s_geography=county&s_measures=aa&map_yearSelector=2023&x_tableYears=2023,2022,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021
 7) Unemployment rate (1990 to 2023): https://www.bls.gov/lau/tables.htm#cntyaa
@@ -53,42 +53,44 @@ Demographic:
 1) Population: The total number of people residing in a county.
 2) Population Density: The county's population divided by its area.
 3) Median Age: The middle value of the ages of the county’s population.
+4) Adherent_rate: The total number of religious adherents in a county divided by its total population.
+5) Religion_diversity : The number of religions in a county that are followed by at least 2% of its religious adherents.
 
 Economic:
-4) Inflation Adjusted Income: The median household income divided by the Consumer Price Index (CPI).
-5) Poverty Rate: The percentage of the population living below the poverty line.
-6) Unemployment Rate: The percentage of the labor force that is unemployed.
+6) Inflation Adjusted Income: The median household income divided by the Consumer Price Index (CPI).
+7) Poverty Rate: The percentage of the population living below the poverty line.
+8) Unemployment Rate: The percentage of the labor force that is unemployed.
 
 Housing:
-7) House Affordability: The ratio of the median house value to the median household income.
-8) Mobile Home Ratio: The ratio of the number of mobile homes to the total number of housing units.
-9) Home Ownership Rate: The proportion of occupied housing units that are owner-occupied.
-10) Rent Burden: The percentage of people paying more than 35% of their income in rent.
-11) Vacancy Rate: The ratio of vacant houses to total housing units.
-12) Number of Persons per Household: The average number of individuals living in each household.
-13) Renter Ratio: The proportion of population that is renting.
+9) House Affordability: The ratio of the median house value to the median household income.
+10) Mobile Home Ratio: The ratio of the number of mobile homes to the total number of housing units.
+11) Home Ownership Rate: The proportion of occupied housing units that are owner-occupied.
+12) Rent Burden: The percentage of people paying more than 35% of their income in rent.
+13) Vacancy Rate: The ratio of vacant houses to total housing units.
+14) Number of Persons per Household: The average number of individuals living in each household.
+15) Renter Ratio: The proportion of population that is renting.
 
 Education:
-14) Dropout Rate: One minus the proportion of children attending school.
-15) Public School Rate: The ratio of children enrolled in public schools to the total number of children.
-16) No High School Rate: The fraction of the adult population without a high school diploma relative to the total adult population.
+16) Dropout Rate: One minus the proportion of children attending school.
+17) Public School Rate: The ratio of children enrolled in public schools to the total number of children.
+18) No High School Rate: The fraction of the adult population without a high school diploma relative to the total adult population.
 
 Health:
-17) Uninsured Rate: The proportion of people without health insurance.
+19) Uninsured Rate: The proportion of people without health insurance.
 
 Government Expenditure:
-18) Adj Police Budget: The police budget adjusted by the CPI and normalized by the county's population.
-19) Adj Judiciary Budget: The judiciary budget adjusted for CPI and population factors.
-20) Adj Prison Budget: The prison budget adjusted similarly.
-21) Adj Education Budget: The education budget adjusted by CPI and county population.
-22) Adj Welfare Budget: The welfare budget adjusted for economic factors.
-23) Adj Mental Health Budget: The mental health budget adjusted for CPI and population.
-24) Adj Rehab Budget: The rehabilitation budget adjusted accordingly.
-25) Adj Health Budget: The health budget adjusted for CPI and population measures.
+20) Adj Police Budget: The police budget adjusted by the CPI and normalized by the county's population.
+21) Adj Judiciary Budget: The judiciary budget adjusted for CPI and population factors.
+22) Adj Prison Budget: The prison budget adjusted similarly.
+23) Adj Education Budget: The education budget adjusted by CPI and county population.
+24) Adj Welfare Budget: The welfare budget adjusted for economic factors.
+25) Adj Mental Health Budget: The mental health budget adjusted for CPI and population.
+26) Adj Rehab Budget: The rehabilitation budget adjusted accordingly.
+27) Adj Health Budget: The health budget adjusted for CPI and population measures.
 
 Other:
-26) County Type: A categorical variable indicating whether a county is urban, suburban, or rural.
-27) Clearance Rate: The ratio of cases solved to the total number of cases.
+28) County Type: A categorical variable indicating whether a county is urban, suburban, or rural.
+29) Clearance Rate: The ratio of cases solved to the total number of cases.
 
 # Data cleaning and imputation
 Many of the datasets have data from a certain year onwards (often from 2010). The dataset of government expenditure is missing all data for San Fransisco County.
